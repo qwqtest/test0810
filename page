@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>手機開鏡頭（後鏡頭）</title>
+<style>
+  body{margin:0;background:#111;color:#eee;font-family:system-ui}
+  main{padding:12px}
+  video,canvas{width:100%;max-height:75vh;background:#000;border-radius:10px}
+  button{padding:10px 14px;border-radius:10px;border:1px solid #333;background:#222;color:#eee}
+</style>
+<main>
+  <video id="v" autoplay playsinline muted></video><br>
+  <button id="start">開啟後鏡頭</button>
+  <button id="flip">切換前/後</button>
+  <button id="snap">截圖</button>
+  <canvas id="c" hidden></canvas>
+  <div id="msg" style="opacity:.8;margin-top:8px;font-size:14px"></div>
+</main>
+<script>
+const v=document.getElementById('v'), c=document.getElementById('c'), msg=(t)=>document.getElementById('msg').textContent=t;
+let stream=null, usingBack=true;
+async function start(){
+  try{
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:usingBack?{exact:'environment'}:'user',width:{ideal:1280},height:{ideal:720}}, audio:false
+    });
+    v.srcObject=stream; await v.play();
+    const s=stream.getVideoTracks()[0].getSettings();
+    msg(`已啟用：${s.width}×${s.height}（${usingBack?'後':'前'}鏡頭）`);
+  }catch(e){ msg('開啟失敗：'+e.message); console.error(e); }
+}
+document.getElementById('start').onclick=start;
+document.getElementById('flip').onclick=()=>{ usingBack=!usingBack; start(); };
+document.getElementById('snap').onclick=()=>{
+  if(!v.videoWidth) return;
+  c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
+  c.hidden=false; c.toBlob(b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`snapshot_${Date.now()}.jpg`; a.click(); },'image/jpeg',0.92);
+};
+</script>
+</html>
